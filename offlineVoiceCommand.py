@@ -95,22 +95,34 @@ print("===> Begin recording. Press Ctrl+C to stop the recording ")
 def executeCommand(command):
     command = command.lower()
     print(f"Command received: {command}")
-    
+
     try:
         # Open applications
         if "open firefox" in command:
             subprocess.run(["firefox"], check=True)
             print("Opening Firefox browser...")
 
-        # Basic computer commands
+        elif "open chrome" in command:
+            subprocess.run(["google-chrome"], check=True)
+            print("Opening Chrome browser...")
+
         elif "open terminal" in command:
             subprocess.run(["gnome-terminal"], check=True)
             print("Opening terminal...")
-        
+
+        elif "open text editor" in command:
+            subprocess.run(["gedit"], check=True)
+            print("Opening text editor...")
+
+        elif "open file manager" in command:
+            subprocess.run(["nautilus"], check=True)
+            print("Opening file manager...")
+
+        # Basic computer commands
         elif "shutdown" in command or "shut down" in command:
             subprocess.run(["shutdown", "now"], check=True)
             print("Shutting down...")
-        
+
         elif "sleep" in command:
             subprocess.run(["systemctl", "suspend"])
             print("Sleeping...")
@@ -122,19 +134,20 @@ def executeCommand(command):
         elif "restart" in command:
             subprocess.run(["reboot"], check=True)
             print("Restarting...")
-        
+
         elif "lock screen" in command:
             subprocess.run(["gnome-screensaver-command", "--lock"])
-            print("Locking user...")
+            print("Locking screen...")
 
         elif "logout" in command or "log out" in command:
             subprocess.run(["gnome-session-quit", "--logout", "--no-prompt"])
-            print("User logging out...")
+            print("Logging out...")
 
+        # Volume control
         elif "volume up" in command:
             subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "10%+"], check=True)
             print("Increasing volume...")
-        
+
         elif "volume down" in command:
             subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "10%-"], check=True)
             print("Decreasing volume...")
@@ -142,34 +155,149 @@ def executeCommand(command):
         elif "mute volume" in command:
             subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "100%-"], check=True)
             print("Muting volume...")
-        
-        elif "full volume" in command or "max volume" in command:
+
+        elif "max volume" in command or "full volume" in command:
             subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "100%+"], check=True)
-            print("Increasing volume...")
-        
+            print("Setting volume to maximum...")
+
+        # System information
         elif "date" in command:
             now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             print(f"Current date and time: {now}")
 
-        elif "set brightness" in command:
-            brightness_value = re.search(r"set brightness to (\d+)", command)
-            if brightness_value:
-                brightness_value = int(brightness_value.group(1))
-                subprocess.run(["xbacklight", "-set", f"{brightness_value}"])
-                print(f"Setting brightness to {brightness_value}...")
-            else:
-                print("No brightness value detected.")
+        elif "battery status" in command:
+            subprocess.run(["acpi", "-b"], check=True)
+            print("Getting battery status...")
 
+        elif "cpu usage" in command:
+            subprocess.run(["top", "-n", "1", "-b", "|", "head", "-n", "10"], check=True)
+            print("Getting CPU usage...")
+
+        elif "memory usage" in command:
+            subprocess.run(["free", "-h"], check=True)
+            print("Getting memory usage...")
+
+        # Network commands
+        elif "wifi status" in command:
+            subprocess.run(["nmcli", "dev", "wifi"], check=True)
+            print("Checking WiFi status...")
+
+        elif "connect to wifi" in command:
+            ssid = re.search(r"connect to wifi (.*)", command)
+            if ssid:
+                wifi_name = ssid.group(1)
+                subprocess.run(["nmcli", "dev", "wifi", "connect", wifi_name], check=True)
+                print(f"Connecting to WiFi: {wifi_name}")
+            else:
+                print("No WiFi name detected.")
+
+        elif "disconnect wifi" in command:
+            subprocess.run(["nmcli", "dev", "disconnect"], check=True)
+            print("Disconnecting WiFi...")
+
+        elif "enable wifi" in command:
+            subprocess.run(["nmcli", "radio", "wifi", "on"], check=True)
+            print("Enabling WiFi...")
+
+        elif "disable wifi" in command:
+            subprocess.run(["nmcli", "radio", "wifi", "off"], check=True)
+            print("Disabling WiFi...")
+
+        # File management commands
+        elif "create folder" in command:
+            folder_name = re.search(r"create folder (.*)", command)
+            if folder_name:
+                folder_name = folder_name.group(1)
+                subprocess.run(["mkdir", folder_name], check=True)
+                print(f"Creating folder: {folder_name}")
+            else:
+                print("No folder name detected.")
+
+        elif "delete file" in command:
+            file_name = re.search(r"delete file (.*)", command)
+            if file_name:
+                file_name = file_name.group(1)
+                subprocess.run(["rm", file_name], check=True)
+                print(f"Deleting file: {file_name}")
+            else:
+                print("No file name detected.")
+
+        elif "move file" in command:
+            files = re.findall(r"move file (.*) to (.*)", command)
+            if files:
+                source, destination = files[0]
+                subprocess.run(["mv", source, destination], check=True)
+                print(f"Moving file: {source} to {destination}")
+            else:
+                print("No source or destination file path detected.")
+
+        elif "copy file" in command:
+            files = re.findall(r"copy file (.*) to (.*)", command)
+            if files:
+                source, destination = files[0]
+                subprocess.run(["cp", source, destination], check=True)
+                print(f"Copying file: {source} to {destination}")
+            else:
+                print("No source or destination file path detected.")
+
+        elif "open file" in command:
+            file_name = re.search(r"open file (.*)", command)
+            if file_name:
+                subprocess.run(["xdg-open", file_name], check=True)
+                print(f"Opening file: {file_name}")
+            else:
+                print("No file name detected.")
+
+        # Web browsing control
+        elif "search google" in command:
+            query = re.search(r"search google (.*)", command)
+            if query:
+                subprocess.run(["firefox", f"https://www.google.com/search?q={query.group(1)}"], check=True)
+                print(f"Searching Google for: {query.group(1)}")
+            else:
+                print("No search query detected.")
+
+        # Weather report
+        elif "weather" in command:
+            subprocess.run(["curl", "wttr.in"], check=True)
+            print("Fetching weather report...")
+
+        # Miscellaneous commands
+        elif "open youtube" in command:
+            subprocess.run(["firefox", "https://www.youtube.com"], check=True)
+            print("Opening YouTube...")
+
+        elif "play music" in command:
+            subprocess.run(["rhythmbox", "--play"], check=True)
+            print("Playing music...")
+
+        elif "pause music" in command:
+            subprocess.run(["rhythmbox", "--pause"], check=True)
+            print("Pausing music...")
+
+        elif "next track" in command:
+            subprocess.run(["rhythmbox", "--next"], check=True)
+            print("Skipping to next track...")
+
+        elif "previous track" in command:
+            subprocess.run(["rhythmbox", "--previous"], check=True)
+            print("Going to previous track...")
+
+        elif "open calculator" in command:
+            subprocess.run(["gnome-calculator"], check=True)
+            print("Opening calculator...")
+
+        # Exit voice assistant
         elif "exit voice" in command:
             print("Closing voice command assistant...")
             app.closeApp()
-
 
         else:
             print("Command not recognized.")
 
     except subprocess.CalledProcessError as e:
         print(f"Error executing command: {e}")
+
 
 
 if __name__ == "__main__":
