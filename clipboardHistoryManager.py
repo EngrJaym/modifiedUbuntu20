@@ -1,14 +1,13 @@
 import pyperclip
 import tkinter as tk
 from tkinter import messagebox
-from tkinter import ttk
 import time
 import threading
 
 class ClipboardManager:
     def __init__(self, root):
         self.root = root
-        self.root.title("Clipboard History Manager")
+        self.root.title("ClipHistory")
         self.root.geometry("400x350")  # Set a default window size
         self.clipboard_history = []
         self.is_running = True
@@ -26,11 +25,11 @@ class ClipboardManager:
 
         # Label for clipboard history
         self.history_label = tk.Label(frame, text="My Clipboard History", font=("Arial", 14, 'bold'))
-        self.history_label.pack(pady=5)
+        self.history_label.pack(pady=10)
 
         # Listbox to display clipboard history with scrollbar
         self.history_listbox = tk.Listbox(frame, width=50, height=10, selectmode=tk.SINGLE, font=("Arial", 10))
-        self.history_listbox.pack(side=tk.LEFT, fill=tk.BOTH, padx=5)
+        self.history_listbox.pack(side=tk.LEFT, fill=tk.BOTH, padx=5, expand=True)
 
         # Scrollbar for the listbox
         scrollbar = tk.Scrollbar(frame, orient=tk.VERTICAL, command=self.history_listbox.yview)
@@ -43,15 +42,11 @@ class ClipboardManager:
 
         # Button to paste selected text back to clipboard
         self.paste_button = tk.Button(button_frame, text="Copy text", command=self.paste_selected, width=20, bg="lightgreen")
-        self.paste_button.pack(side=tk.LEFT, padx=5)
+        self.paste_button.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
 
         # Button to clear clipboard history
         self.clear_button = tk.Button(button_frame, text="Clear History", command=self.clear_history, width=20, bg="lightcoral")
-        self.clear_button.pack(side=tk.LEFT, padx=5)
-
-        # Button to quit the app
-        self.quit_button = tk.Button(button_frame, text="Quit", command=self.stop, width=20, bg="lightgray")
-        self.quit_button.pack(side=tk.LEFT, padx=5)
+        self.clear_button.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
 
         # Status label for feedback on actions
         self.status_label = tk.Label(self.root, text="Ready", font=("Arial", 10, 'italic'), fg="gray")
@@ -88,15 +83,10 @@ class ClipboardManager:
             messagebox.showerror("Error", f"Failed to copy: {e}")
 
     def clear_history(self):
-        """Clear the clipboard history."""
+        # Clear the clipboard history.
         self.clipboard_history.clear()
         self.history_listbox.delete(0, tk.END)
         self.status_label.config(text="History cleared.", fg="blue")
-
-    def stop(self):
-        """Stop the application."""
-        self.is_running = False
-        self.root.quit()
 
 if __name__ == "__main__":
     root = tk.Tk()
