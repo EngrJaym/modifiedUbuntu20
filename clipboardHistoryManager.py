@@ -88,7 +88,12 @@ class ClipboardManager:
         self.history_listbox.delete(0, tk.END)
         self.status_label.config(text="History cleared.", fg="blue")
 
+def on_closing():
+    if messagebox.askyesno("Warning", "Closing the app will turn off the clipboard text history feature and will reset your current clipboard history. Do you want to proceed?"):
+        root.destroy()
+
 if __name__ == "__main__":
     root = tk.Tk()
+    root.protocol("WM_DELETE_WINDOW", on_closing)
     clipboard_manager = ClipboardManager(root)
     root.mainloop()
