@@ -2,6 +2,7 @@ import cv2
 from pyzbar import pyzbar
 import webbrowser
 import subprocess
+import tkinter as tk
 from tkinter import filedialog, messagebox, Tk, Button, Label
 from PIL import Image, ImageTk
 
@@ -9,7 +10,7 @@ class QRCodeScannerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("QR Code Scanner")
-        self.root.geometry("800x600")
+        self.root.geometry("700x600")
 
         self.cap = cv2.VideoCapture(0)
         if not self.cap.isOpened():
@@ -23,22 +24,22 @@ class QRCodeScannerApp:
 
         # Create GUI elements
         self.label = Label(root)
-        self.label.pack()
+        self.label.pack(pady=(10,0))
 
         self.qr_text_label = Label(root, text="QR Code Text: None", font=("Helvetica", 14))
         self.qr_text_label.pack(pady=20)
 
         self.btn_zoom_in = Button(root, text="Zoom In (+)", command=self.zoom_in)
-        self.btn_zoom_in.pack(side="left", padx=10)
+        self.btn_zoom_in.pack(side="left", padx=10, fill=tk.X, expand=True)
 
         self.btn_zoom_out = Button(root, text="Zoom Out (-)", command=self.zoom_out)
-        self.btn_zoom_out.pack(side="left", padx=10)
+        self.btn_zoom_out.pack(side="left", padx=10, fill=tk.X, expand=True)
 
         self.btn_scan_image = Button(root, text="Scan Image", command=self.scan_image_file)
-        self.btn_scan_image.pack(side="left", padx=10)
+        self.btn_scan_image.pack(side="left", padx=10, fill=tk.X, expand=True)
 
         self.btn_exit = Button(root, text="Exit", command=self.on_closing)
-        self.btn_exit.pack(side="left", padx=10)
+        self.btn_exit.pack(side="left", padx=10, fill=tk.X, expand=True)
 
         # Handle the close button
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
