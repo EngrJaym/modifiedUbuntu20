@@ -11,6 +11,7 @@ class QRCodeScannerApp:
         self.root = root
         self.root.title("QR Code Scanner")
         self.root.geometry("700x600")
+        self.root.iconphoto(True, tk.PhotoImage(file="/opt/QRCodeScanner/QRCodeScannerIcon.png"))
 
         self.cap = cv2.VideoCapture(0)
         if not self.cap.isOpened():
@@ -168,5 +169,4 @@ if __name__ == "__main__":
     root = Tk()
     app = QRCodeScannerApp(root)
     root.mainloop()
-
 
