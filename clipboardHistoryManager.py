@@ -9,6 +9,7 @@ class ClipboardManager:
         self.root = root
         self.root.title("ClipHistory")
         self.root.geometry("400x350")  # Set a default window size
+        self.root.iconphoto(True, tk.PhotoImage(file="/opt/clipHistory/clipHistoryIcon.png"))
         self.clipboard_history = []
         self.is_running = True
 
