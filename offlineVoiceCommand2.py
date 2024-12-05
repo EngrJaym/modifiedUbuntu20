@@ -6,26 +6,28 @@ import json
 import subprocess
 import datetime
 import re
-import tkinter as tk
 import threading
 import os
+import pystray
+from pystray import MenuItem as item
+from PIL import Image, ImageDraw
 
 class VoiceCommand:
     def __init__(self):
-        self.startRecording()
-        self.is_recording = True
+        self.is_recording = False
+        self.stream = None
 
     def startRecording(self):
         self.is_recording = True
         self.stream = sd.RawInputStream(dtype='int16', channels=1, callback=recordCallback, blocksize=1024)
-        self.stream.start()  # Start the audio stream
+        self.stream.start()
         threading.Thread(target=self.record).start()
 
     def stopRecording(self):
         self.is_recording = False
         if self.stream:
-            self.stream.stop()  # Stop the audio stream
-            self.stream.close()  # Close the audio stream
+            self.stream.stop()
+            self.stream.close()
             self.stream = None
 
     def record(self):
@@ -38,22 +40,24 @@ class VoiceCommand:
                     print(f"Command recognized: {resultDict['text']}")
                     executeCommand(resultDict['text'])
 
-    def closeApp(self):
+    def toggleRecording(self):
+        print(f"Recording:{self.is_recording}")
+        if self.is_recording:
+            self.stopRecording()
+        else:
+            self.startRecording()
+
+    def closeApp(self, icon):
         self.stopRecording()
-        sys.exit()
-            
+        icon.stop()
 
 # list all audio devices known to your system
 print("Display input/output devices")
 print(sd.query_devices())
 
-
 # get the samplerate - this is needed by the Kaldi recognizer
 device_info = sd.query_devices(sd.default.device[0], 'input')
 samplerate = int(device_info['default_samplerate'])
-
-# display the default input device
-print("===> Initial Default Device Number:{} Description: {}".format(sd.default.device[0], device_info))
 
 # setup queue and callback function
 q = queue.Queue()
@@ -62,224 +66,304 @@ def recordCallback(indata, frames, time, status):
     if status:
         print(status, file=sys.stderr)
     q.put(bytes(indata))
-    
+
 # build the model and recognizer objects.
 print("===> Build the model and recognizer objects.  This will take a few minutes...")
 model_path = vosk.Model(r"/usr/share/vosk/models/vosk-model-en-us-0.42")
 recognizer = vosk.KaldiRecognizer(model_path, samplerate)
 recognizer.SetWords(False)
 
-
-print("===> Begin recording. Press Ctrl+C to stop the recording ")
-
 def executeCommand(command):
     command = command.lower()
     print(f"Command received: {command}")
 
-    try:
-        # Open applications
-        if "open firefox" in command:
-            subprocess.run(["firefox"], check=True)
-            print("Opening Firefox browser...")
+    while True:
+        try:
+            # Open applications (your existing command cases)
+            if "open firefox" in command:
+                subprocess.run(["firefox"], check=True)
+                print("Opening Firefox browser...")
+            # Other command cases ...
 
-        elif "open chrome" in command:
-            subprocess.run(["google-chrome"], check=True)
-            print("Opening Chrome browser...")
+            elif "open chrome" in command:
+                subprocess.run(["google-chrome"], check=True)
+                print("Opening Chrome browser...")
 
-        elif "open terminal" in command:
-            subprocess.run(["gnome-terminal"], check=True)
-            print("Opening terminal...")
+            elif "open visual studio code" in command or "open vscode" in command or "open vs code" in command:
+                subprocess.run(["code"], check=True)
 
-        elif "open text editor" in command:
-            subprocess.run(["gedit"], check=True)
-            print("Opening text editor...")
+            elif "open rhythmbox" in command or "open rhythm box" in command:
+                subprocess.run(["rhythmbox"], check=True)
 
-        elif "open file manager" in command:
-            subprocess.run(["nautilus"], check=True)
-            print("Opening file manager...")
+            elif "open clip history" in command:      
+                subprocess.run(["python3", "/opt/clipHistory/clipHistory.py"], check=True)
 
-        # Basic computer commands
-        elif "shutdown" in command or "shut down" in command:
-            subprocess.run(["shutdown", "now"], check=True)
-            print("Shutting down...")
+            elif "open theme switcher" in command:
+                subprocess.run(["python3", "/opt/themeSwitch/themeSwitch.py"], check=True)
 
-        elif "sleep" in command:
-            subprocess.run(["systemctl", "suspend"])
-            print("Sleeping...")
+            elif "open terminal" in command:
+                subprocess.run(["gnome-terminal"], check=True)
+                print("Opening terminal...")
 
-        elif "hibernate" in command:
-            subprocess.run(["systemctl", "hibernate"])
-            print("Hibernating computer...")
+            elif "open text editor" in command:
+                subprocess.run(["gedit"], check=True)
+                print("Opening text editor...")
 
-        elif "restart" in command:
-            subprocess.run(["reboot"], check=True)
-            print("Restarting...")
+            elif "open file manager" in command:
+                subprocess.run(["nautilus"], check=True)
+                print("Opening file manager...")
 
-        elif "lock screen" in command:
-            subprocess.run(["gnome-screensaver-command", "--lock"])
-            print("Locking screen...")
+            # Basic computer commands
+            elif "shutdown" in command or "shut down" in command:
+                subprocess.run(["shutdown", "now"], check=True)
+                print("Shutting down...")
 
-        elif "logout" in command or "log out" in command:
-            subprocess.run(["gnome-session-quit", "--logout", "--no-prompt"])
-            print("Logging out...")
+            elif "sleep" in command:
+                subprocess.run(["systemctl", "suspend"])
+                print("Sleeping...")
 
-        # Volume control
-        elif "volume up" in command:
-            subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "10%+"], check=True)
-            print("Increasing volume...")
+            elif "hibernate" in command:
+                subprocess.run(["systemctl", "hibernate"])
+                print("Hibernating computer...")
 
-        elif "volume down" in command:
-            subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "10%-"], check=True)
-            print("Decreasing volume...")
+            elif "restart" in command:
+                subprocess.run(["reboot"], check=True)
+                print("Restarting...")
 
-        elif "mute volume" in command:
-            subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "100%-"], check=True)
-            print("Muting volume...")
+            elif "lock screen" in command:
+                subprocess.run(["gnome-screensaver-command", "--lock"])
+                print("Locking screen...")
 
-        elif "max volume" in command or "full volume" in command:
-            subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "100%+"], check=True)
-            print("Setting volume to maximum...")
+            elif "logout" in command or "log out" in command:
+                subprocess.run(["gnome-session-quit", "--logout", "--no-prompt"])
+                print("Logging out...")
 
-        # System information
-        elif "date" in command:
-            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            print(f"Current date and time: {now}")
+            # Volume control
+            elif "volume up" in command:
+                subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "10%+"], check=True)
+                print("Increasing volume...")
 
-        elif "battery status" in command:
-            subprocess.run(["acpi", "-b"], check=True)
-            print("Getting battery status...")
+            elif "volume down" in command:
+                subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "10%-"], check=True)
+                print("Decreasing volume...")
 
-        elif "cpu usage" in command:
-            subprocess.run(["top", "-n", "1", "-b", "|", "head", "-n", "10"], check=True)
-            print("Getting CPU usage...")
+            elif "mute volume" in command:
+                subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "100%-"], check=True)
+                print("Muting volume...")
 
-        elif "memory usage" in command:
-            subprocess.run(["free", "-h"], check=True)
-            print("Getting memory usage...")
+            elif "max volume" in command or "full volume" in command:
+                subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "100%+"], check=True)
+                print("Setting volume to maximum...")
 
-        # Network commands
-        elif "wifi status" in command:
-            subprocess.run(["nmcli", "dev", "wifi"], check=True)
-            print("Checking WiFi status...")
+            # System information
+            elif "date" in command:
+                now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                print(f"Current date and time: {now}")
 
-        elif "connect to wifi" in command:
-            ssid = re.search(r"connect to wifi (.*)", command)
-            if ssid:
-                wifi_name = ssid.group(1)
-                subprocess.run(["nmcli", "dev", "wifi", "connect", wifi_name], check=True)
-                print(f"Connecting to WiFi: {wifi_name}")
-            else:
-                print("No WiFi name detected.")
+            elif "battery status" in command:
+                subprocess.run(["acpi", "-b"], check=True)
+                print("Getting battery status...")
 
-        elif "disconnect wifi" in command:
-            subprocess.run(["nmcli", "dev", "disconnect"], check=True)
-            print("Disconnecting WiFi...")
+            elif "cpu usage" in command:
+                subprocess.run(["top", "-n", "1", "-b", "|", "head", "-n", "10"], check=True)
+                print("Getting CPU usage...")
 
-        elif "enable wifi" in command:
-            subprocess.run(["nmcli", "radio", "wifi", "on"], check=True)
-            print("Enabling WiFi...")
+            elif "memory usage" in command:
+                subprocess.run(["free", "-h"], check=True)
+                print("Getting memory usage...")
 
-        elif "disable wifi" in command:
-            subprocess.run(["nmcli", "radio", "wifi", "off"], check=True)
-            print("Disabling WiFi...")
+            # Network commands
+            elif "wifi status" in command:
+                subprocess.run(["nmcli", "dev", "wifi"], check=True)
+                print("Checking WiFi status...")
 
-        # File management commands
-        elif "create folder" in command:
-            folder_name = re.search(r"create folder (.*)", command)
-            if folder_name:
-                folder_name = folder_name.group(1)
-                subprocess.run(["mkdir", folder_name], check=True)
-                print(f"Creating folder: {folder_name}")
-            else:
-                print("No folder name detected.")
+            elif "connect to wifi" in command:
+                ssid = re.search(r"connect to wifi (.*)", command)
+                if ssid:
+                    wifi_name = ssid.group(1)
+                    subprocess.run(["nmcli", "dev", "wifi", "connect", wifi_name], check=True)
+                    print(f"Connecting to WiFi: {wifi_name}")
+                else:
+                    print("No WiFi name detected.")
 
-        elif "delete file" in command:
-            file_name = re.search(r"delete file (.*)", command)
-            if file_name:
-                file_name = file_name.group(1)
-                subprocess.run(["rm", file_name], check=True)
-                print(f"Deleting file: {file_name}")
-            else:
-                print("No file name detected.")
+            elif "disconnect wifi" in command:
+                subprocess.run(["nmcli", "dev", "disconnect"], check=True)
+                print("Disconnecting WiFi...")
 
-        elif "move file" in command:
-            files = re.findall(r"move file (.*) to (.*)", command)
-            if files:
-                source, destination = files[0]
-                subprocess.run(["mv", source, destination], check=True)
-                print(f"Moving file: {source} to {destination}")
-            else:
-                print("No source or destination file path detected.")
+            elif "enable wifi" in command:
+                subprocess.run(["nmcli", "radio", "wifi", "on"], check=True)
+                print("Enabling WiFi...")
 
-        elif "copy file" in command:
-            files = re.findall(r"copy file (.*) to (.*)", command)
-            if files:
-                source, destination = files[0]
-                subprocess.run(["cp", source, destination], check=True)
-                print(f"Copying file: {source} to {destination}")
-            else:
-                print("No source or destination file path detected.")
+            elif "disable wifi" in command:
+                subprocess.run(["nmcli", "radio", "wifi", "off"], check=True)
+                print("Disabling WiFi...")
 
-        elif "open file" in command:
-            file_name = re.search(r"open file (.*)", command)
-            if file_name:
-                subprocess.run(["xdg-open", file_name], check=True)
-                print(f"Opening file: {file_name}")
-            else:
-                print("No file name detected.")
+            # File management commands
+            elif "search file" in command:
+                filename = re.search(r"search file (.*)", command)
+                if filename:
+                    subprocess.run(["find", "/", "-name", filename.group(1)], check=True)
+                    print(f"Searching for file: {filename.group(1)}")
+                else:
+                    print("No file name detected.")
 
-        # Web browsing control
-        elif "search google" in command:
-            query = re.search(r"search google (.*)", command)
-            if query:
-                subprocess.run(["firefox", f"https://www.google.com/search?q={query.group(1)}"], check=True)
-                print(f"Searching Google for: {query.group(1)}")
-            else:
-                print("No search query detected.")
+            elif "create folder" in command:
+                folder_name = re.search(r"create folder (.*)", command)
+                if folder_name:
+                    folder_name = folder_name.group(1)
+                    subprocess.run(["mkdir", folder_name], check=True)
+                    print(f"Creating folder: {folder_name}")
+                else:
+                    print("No folder name detected.")
 
-        # Weather report
-        elif "weather" in command:
-            subprocess.run(["curl", "wttr.in"], check=True)
-            print("Fetching weather report...")
+            elif "delete file" in command:
+                file_name = re.search(r"delete file (.*)", command)
+                if file_name:
+                    file_name = file_name.group(1)
+                    subprocess.run(["rm", file_name], check=True)
+                    print(f"Deleting file: {file_name}")
+                else:
+                    print("No file name detected.")
 
-        # Miscellaneous commands
-        elif "open youtube" in command:
-            subprocess.run(["firefox", "https://www.youtube.com"], check=True)
-            print("Opening YouTube...")
+            elif "move file" in command:
+                files = re.findall(r"move file (.*) to (.*)", command)
+                if files:
+                    source, destination = files[0]
+                    subprocess.run(["mv", source, destination], check=True)
+                    print(f"Moving file: {source} to {destination}")
+                else:
+                    print("No source or destination file path detected.")
 
-        elif "play music" in command:
-            subprocess.run(["rhythmbox", "--play"], check=True)
-            print("Playing music...")
+            elif "copy file" in command:
+                files = re.findall(r"copy file (.*) to (.*)", command)
+                if files:
+                    source, destination = files[0]
+                    subprocess.run(["cp", source, destination], check=True)
+                    print(f"Copying file: {source} to {destination}")
+                else:
+                    print("No source or destination file path detected.")
 
-        elif "pause music" in command:
-            subprocess.run(["rhythmbox", "--pause"], check=True)
-            print("Pausing music...")
+            elif "open file" in command:
+                file_name = re.search(r"open file (.*)", command)
+                if file_name:
+                    subprocess.run(["xdg-open", file_name], check=True)
+                    print(f"Opening file: {file_name}")
+                else:
+                    print("No file name detected.")
 
-        elif "next track" in command:
-            subprocess.run(["rhythmbox", "--next"], check=True)
-            print("Skipping to next track...")
+            # Web browsing control
+            elif "search google" in command:
+                query = re.search(r"search google (.*)", command)
+                if query:
+                    subprocess.run(["firefox", f"https://www.google.com/search?q={query.group(1)}"], check=True)
+                    print(f"Searching Google for: {query.group(1)}")
+                else:
+                    print("No search query detected.")
 
-        elif "previous track" in command:
-            subprocess.run(["rhythmbox", "--previous"], check=True)
-            print("Going to previous track...")
+            # Weather report
+            elif "weather" in command or "whether" in command:
+                subprocess.run(["curl", "wttr.in"], check=True)
+                print("Fetching weather report...")
 
-        elif "open calculator" in command:
-            subprocess.run(["gnome-calculator"], check=True)
-            print("Opening calculator...")
+            # Miscellaneous commands
+            elif "take screenshot" in command:
+                subprocess.run(["gnome-screenshot"], check=True)
+                print("Taking a screenshot...")
 
-        # Exit voice assistant
-        elif "exit voice" in command:
-            print("Closing voice command assistant...")
-            app.closeApp()
+            elif "open youtube" in command:
+                subprocess.run(["firefox", "https://www.youtube.com"], check=True)
+                print("Opening YouTube...")
 
-        else:
-            print("Command not recognized.")
+            elif "play music" in command:
+                subprocess.run(["rhythmbox", "--play"], check=True)
+                print("Playing music...")
 
-    except subprocess.CalledProcessError as e:
-        print(f"Error executing command: {e}")
+            elif "pause music" in command:
+                subprocess.run(["rhythmbox", "--pause"], check=True)
+                print("Pausing music...")
 
+            elif "next track" in command:
+                subprocess.run(["rhythmbox", "--next"], check=True)
+                print("Skipping to next track...")
+
+            elif "previous track" in command:
+                subprocess.run(["rhythmbox", "--previous"], check=True)
+                print("Going to previous track...")
+
+            elif "open calculator" in command:
+                subprocess.run(["gnome-calculator"], check=True)
+                print("Opening calculator...")
+
+            elif "exit voice" in command:
+                print("Closing voice command assistant...")
+                app.closeApp()
+
+        except subprocess.CalledProcessError as e:
+            print(f"Error executing command: {e}")
+
+        except Exception as e:
+                print(f"An unexpected error occurred: {e}")
+        finally:
+            # Optionally handle cleanup or reset state
+            print("Ready for the next command.")
+        break
+    
+def create_image(is_recording):
+    # Create a mic icon image
+    width = 64
+    height = 64
+    image = Image.new('RGB', (width, height), color=(255, 255, 255))
+    draw = ImageDraw.Draw(image)
+
+    # Change the mic icon color based on recording state
+    mic_color = (0, 255, 0) if is_recording else (255, 0, 0)  # Green if recording, Red if stopped
+
+    # Draw mic base (circle)
+    mic_center = (width // 2, height // 3)
+    mic_radius = 16
+    draw.ellipse(
+        (mic_center[0] - mic_radius, mic_center[1] - mic_radius,
+         mic_center[0] + mic_radius, mic_center[1] + mic_radius),
+        fill=mic_color
+    )
+
+    # Draw mic handle (rectangle)
+    handle_width = 10
+    handle_height = 20
+    handle_top = mic_center[1] + mic_radius
+    draw.rectangle(
+        (mic_center[0] - handle_width // 2, handle_top,
+         mic_center[0] + handle_width // 2, handle_top + handle_height),
+        fill=mic_color
+    )
+
+    # Draw mic stand (line)
+    stand_height = 10
+    stand_top = handle_top + handle_height
+    draw.line(
+        [(mic_center[0], stand_top), (mic_center[0], stand_top + stand_height)],
+        fill=mic_color, width=3
+    )
+
+    return image
+
+def on_quit(icon, item):
+    pass
+
+def toggle_voice_command(icon, _):
+    app.toggleRecording()
+    print(f"value of app is recording: {app.is_recording}")
+
+    icon.icon = create_image(app.is_recording)
 
 
 if __name__ == "__main__":
     app = VoiceCommand()
-    print("speak now")
+    print("speak")
+
+    icon = pystray.Icon("VoiceCommand")
+    icon.icon = create_image(app.is_recording) 
+    icon.menu = pystray.Menu(
+        item('Toggle Voice Command', toggle_voice_command)
+    )
+    icon.run()
